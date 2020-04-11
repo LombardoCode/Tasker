@@ -84,7 +84,7 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style>
+<style scoped>
   #fondo {
     width: 100%;
     height: 100vh;

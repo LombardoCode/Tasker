@@ -2,10 +2,11 @@
     <div>
         <div id="contenido" class="d-flex">
             <div id="panel_izquierdo" class="px-4">
-                <button class="btn btn-danger btn-block" v-on:click="cerrar_sesion()">Cerrar sesión</button>
+                <PanelCuenta :nombre="this.nombre"/>
             </div>
-            <div id="panel_derecho">
-                <h1>Bienvenido de vuelta, {{this.nombre}}.</h1>
+            <div id="panel_derecho" class="flex-fill px-4 pt-4">
+                <CreadorDeTareas @datosTarea="tareaRecibida"/>
+                <MostradorDeTareas :tareaMandada="this.datosTarea"/>
             </div>
         </div>
     </div>
@@ -13,14 +14,23 @@
 
 <script>
 import axios from 'axios'
+import PanelCuenta from './PanelCuenta'
+import CreadorDeTareas from './CreadorDeTareas'
+import MostradorDeTareas from './MostradorDeTareas'
 
 export default {
     name: 'Dashboard',
+    components: {
+        PanelCuenta,
+        CreadorDeTareas,
+        MostradorDeTareas
+    },
     data() {
         return {
-            id: '',
+            id: 0,
             correo: '',
-            nombre: ''
+            nombre: '',
+            datosTarea: {}
         }
     },
     mounted: function() {
@@ -35,9 +45,9 @@ export default {
             // Obtenemos los datos del usuario
             axios.post('/api/funciones.php', parametros)
                 .then(res => {
-                    console.log(res);
+                    //console.log(res);
                     // Guardamos los datos del usuario
-                    this.id = res.data.id;
+                    this.id = parseInt(res.data.id);
                     this.correo = res.data.correo;
                     this.nombre = res.data.nombre;
 
@@ -58,28 +68,22 @@ export default {
                     console.log(err);
                 })
         },
-        cerrar_sesion() {
-            axios.get('/api/cerrar_sesion.php')
-                .then(res => {
-                    console.log(res);
-                    // Si los datos son correctos...
-                    if (res.data.status === 'OK') {
-                        // Redireccionamos al usuario al login
-                        this.$router.push({name: 'Login'});
-                    }
-                })
-                .catch(err => {
-                    console.log(err);
-                })
+        tareaRecibida(tarea) {
+            // Asignamos la tarea que se va a mandar al componente de «MostradorDeTareas.vue»
+            this.datosTarea = tarea;
         }
     }
 }
 </script>
 
-<style>
+<style scoped>
     #panel_izquierdo {
         width: 300px;
         height: 100vh;
         background-color: #1b1b1b;
+    }
+
+    #panel_derecho {
+        background-color: rgb(230, 230, 230);
     }
 </style>
