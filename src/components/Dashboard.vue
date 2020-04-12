@@ -78,7 +78,7 @@ export default {
 
 <style scoped>
     #panel_izquierdo {
-        width: 300px;
+        min-width: 300px;
         height: 100vh;
         background-color: #1b1b1b;
     }

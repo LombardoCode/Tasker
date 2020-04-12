@@ -42,7 +42,7 @@ export default {
             // Creamos un AJAX
             axios.post('/api/funciones.php', parametros)
                 .then(res => {
-                    console.log(res);
+                    //console.log(res);
                     // Si los datos fueron insertados correctamente...
                     if (res.data.status === 'OK') {
                         // Mandamos la información al componente padre (Dashboard.vue)

@@ -11,13 +11,13 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white">
-                    <tr v-for="tarea in tareas" v-bind:key="tarea.id">
+                    <tr v-for="tarea in tareas" v-bind:key="tarea.ID">
                         <td>{{tarea.Tarea}}</td>
-                        <td v-if="tarea.Realizada == 1">
-                            <input type="checkbox" name="" id="" checked>
+                        <td v-if="tarea.Realizada == true">
+                            <input type="checkbox" name="" id="" checked v-on:click="modificarRealizacion(tarea, $event)">
                         </td>
-                        <td v-else>
-                            <input type="checkbox" name="" id="">
+                        <td v-else-if="tarea.Realizada == false">
+                            <input type="checkbox" name="" id="" v-on:click="modificarRealizacion(tarea, $event)">
                         </td>
                         <td>
                             <div class="d-flex">
@@ -60,7 +60,7 @@ export default {
             // Hacemos una petición AJAX
             axios.post('/api/funciones.php', parametros)
                 .then(res => {
-                    console.log(res);
+                    //console.log(res);
                     // Si los datos fueron recibidos correctamente...
                     if (res.data.status === 'OK') {
                         // Obtenemos las tareas
@@ -68,9 +68,29 @@ export default {
 
                         // Almacenamos las tareas
                         this.tareas = tareas;
-
-                        console.log(this.tareas);
                     }
+                })
+                .catch(err => {
+                    console.log(err);
+                })
+        },
+        modificarRealizacion(tarea, event) {
+            // Obtenemos el estado actual del checkbox
+            let estado_tarea = event.target.checked;
+
+            // Creamos unos parametros
+            let parametros = new FormData();
+            parametros.append("request", "modificarRealizacion");
+            parametros.append("id_tarea", tarea.ID);
+            parametros.append("status_tarea", estado_tarea)
+
+            console.log("Aqui tenemos los parametros:");
+            console.log("Tarea_ID: " + tarea.ID + " Status: " + estado_tarea);
+
+            // Creamos una petición AJAX
+            axios.post('/api/funciones.php', parametros)
+                .then(res => {
+                    console.log(res);
                 })
                 .catch(err => {
                     console.log(err);
