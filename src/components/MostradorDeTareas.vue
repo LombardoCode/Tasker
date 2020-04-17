@@ -21,14 +21,14 @@
                         </td>
                         <td>
                             <div class="d-flex">
-                                <input type="button" value="Editar" class="btn btn-warning mr-1" data-toggle="modal" data-target="#exampleModal" v-on:click="editarTarea(tarea)">
-                                <input type="button" value="Eliminar" class="btn btn-danger ml-1">
+                                <input type="button" value="Editar" class="btn btn-warning mr-1" data-toggle="modal" data-target="#modalTarea" v-on:click="editarTarea(tarea)">
+                                <input type="button" value="Eliminar" class="btn btn-danger ml-1" data-toggle="modal" data-target="#modalTarea" v-on:click="eliminarTarea(tarea)">
                             </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <Modal :id="idModal" @tareaNueva="actualizarTareaInput" @tareaActualizar="actualizarTareaNombre" :tarea="tareaModal"/>
+            <Modal :id="idModal" @tareaNueva="actualizarTareaInput" @tareaActualizar="actualizarTareaNombre" @tareaEliminar="eliminarTareaLocal" :tarea="tareaModal" :accion="accion"/>
         </div>
         <div v-else class="alert alert-warning">
             Actualmente no dispone de tareas. ¡Cree una!
@@ -48,8 +48,9 @@ export default {
     data() {
         return {
             tareas: {},
+            accion: '',
             tareaModal: '',
-            idModal: 0
+            idModal: 0,
         }
     },
     props: {
@@ -109,6 +110,22 @@ export default {
             // y almacendada dentro de los props su componente
             this.idModal = parseInt(tarea.ID);
             this.tareaModal = tarea.Tarea;
+
+            // Le damos a entender al Modal que se autoconfigure para ser usado
+            // exclusivamente para editar tareas
+            this.accion = "editar";
+        },
+        eliminarTarea(tarea) {
+            // Al hacer clic en editar en el botón de cada tarea
+            // se obtendrá el ID y la tarea actual de la fila
+            // deseada para ser eliminada posteriormente por el
+            // componente «Modal.vue»
+            this.idModal = parseInt(tarea.ID);
+            this.tareaModal = tarea.Tarea;
+
+            // Le damos a entender al Modal que se autoconfigure para ser usado
+            // exclusivamente para eliminar tareas
+            this.accion = "eliminar";
         },
         actualizarTareaInput(tarea) {
             // Actualizamos el nuevo valor del prop de «Modal.vue»
@@ -123,6 +140,22 @@ export default {
                     this.tareas[tarea]["Tarea"] = datos.Tarea;
                 }
             }
+        },
+        eliminarTareaLocal(datos) {
+            // Hacemos un for para encontrar el ID que sea igual al ID de la tarea
+            // recibida por parte del componente «Modal.vue»
+            let index;
+            for (let tarea in this.tareas) {
+                console.log(tarea);
+                if (this.tareas[tarea]["ID"] == datos.ID) {
+                    // Encontramos el index de nuestro array que coincide con el
+                    // id de las tareas y el id de los datos obtenidos de «Modal.vue»
+                    index = tarea
+                }
+            }
+
+            // Eliminamos el array de la lista de tareas de manera local
+            this.tareas.splice(index, 1);
         }
     },
     watch: {
