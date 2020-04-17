@@ -21,13 +21,14 @@
                         </td>
                         <td>
                             <div class="d-flex">
-                                <input type="button" value="Editar" class="btn btn-warning mr-1">
+                                <input type="button" value="Editar" class="btn btn-warning mr-1" data-toggle="modal" data-target="#exampleModal" v-on:click="editarTarea(tarea)">
                                 <input type="button" value="Eliminar" class="btn btn-danger ml-1">
                             </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
+            <Modal :id="idModal" @tareaNueva="actualizarTareaInput" @tareaActualizar="actualizarTareaNombre" :tarea="tareaModal"/>
         </div>
         <div v-else class="alert alert-warning">
             Actualmente no dispone de tareas. ¡Cree una!
@@ -37,18 +38,26 @@
 
 <script>
 import axios from 'axios'
+import Modal from './Modal'
 
 export default {
     name: 'MostradorDeTareas',
+    components: {
+        Modal
+    },
     data() {
         return {
-            tareas: {}
+            tareas: {},
+            tareaModal: '',
+            idModal: 0
         }
     },
     props: {
+        // Obtenemos la tarea que se creó con el módulo de creación de tareas
         tareaMandada: Object
     },
     mounted: function() {
+        // Obtenemos todas las tareas de la base de datos
         this.mostrarTareas();
     },
     methods: {
@@ -84,9 +93,6 @@ export default {
             parametros.append("id_tarea", tarea.ID);
             parametros.append("status_tarea", estado_tarea)
 
-            console.log("Aqui tenemos los parametros:");
-            console.log("Tarea_ID: " + tarea.ID + " Status: " + estado_tarea);
-
             // Creamos una petición AJAX
             axios.post('/api/funciones.php', parametros)
                 .then(res => {
@@ -95,10 +101,35 @@ export default {
                 .catch(err => {
                     console.log(err);
                 })
+        },
+        editarTarea(tarea) {
+            // Al hacer clic en editar en el botón de cada tarea
+            // se obtendrá el ID y la tarea actual de la fila 
+            // deseada para ser impresa por el componente «Modal.vue»
+            // y almacendada dentro de los props su componente
+            this.idModal = parseInt(tarea.ID);
+            this.tareaModal = tarea.Tarea;
+        },
+        actualizarTareaInput(tarea) {
+            // Actualizamos el nuevo valor del prop de «Modal.vue»
+            this.tareaModal = tarea;
+        },
+        actualizarTareaNombre(datos) {
+            // Hacemos un for para encontrar el ID que sea igual al ID de la tarea
+            // recibida por parte del componente «Modal.vue»
+            for (let tarea in this.tareas) {
+                if (this.tareas[tarea]["ID"] == datos.ID) {
+                    // Actualizamos el texto de la tarea editada
+                    this.tareas[tarea]["Tarea"] = datos.Tarea;
+                }
+            }
         }
     },
     watch: {
+        // Cuando el prop «tareaMandada» sufra un cambio se ejecutará este método
         tareaMandada() {
+            // Adjuntamos a la lista de tareas nuestra nueva tarea mandada que ha
+            // sido creada con el módulo de creación de tareas
             this.tareas.push(this.tareaMandada);
         }
     }
