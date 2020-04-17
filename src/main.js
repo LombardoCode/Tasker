@@ -4,6 +4,7 @@ import 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.css'
 import VueRouter from 'vue-router'
 import Login from './components/Login.vue'
+import Registrarse from './components/Registrarse.vue'
 import Dashboard from './components/Dashboard.vue'
 
 Vue.config.productionTip = false
@@ -16,6 +17,11 @@ const Router = new VueRouter({
       path: '/',
       name: 'Login',
       component: Login
+    },
+    {
+      path: '/registrarse',
+      name: 'Registrarse',
+      component: Registrarse
     },
     {
       path: '/dashboard',

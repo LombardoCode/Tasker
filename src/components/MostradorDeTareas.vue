@@ -146,7 +146,6 @@ export default {
             // recibida por parte del componente «Modal.vue»
             let index;
             for (let tarea in this.tareas) {
-                console.log(tarea);
                 if (this.tareas[tarea]["ID"] == datos.ID) {
                     // Encontramos el index de nuestro array que coincide con el
                     // id de las tareas y el id de los datos obtenidos de «Modal.vue»
