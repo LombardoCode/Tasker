@@ -3,6 +3,11 @@
 		<div class="d-flex justify-content-center pt-5" id="overlay-oscuro">
 			<div id="login-panel" class="px-4 pb-3">
 				<h3 class="text-center pt-5 pb-4">Ingresar al sistema</h3>
+				<div class="alert alert-danger" v-if="Object.keys(this.errores).length !== 0">
+					<ul class="m-0 pl-2" v-for="error in this.errores" :key="error">
+						<li>{{error}}</li>
+					</ul>
+				</div>
 				<form>
 					<div class="form-group">
 						<label for="correo">Correo electrónico</label>
@@ -34,7 +39,8 @@
 		data() {
 			return {
 				correo: '',
-				contra: ''
+				contra: '',
+				errores: {}
 			}
 		},
 		mounted: function () {
@@ -44,7 +50,7 @@
 			obtenerDatosUsuario() {
 				// Creamos unos parametros
 				let parametros = new FormData();
-				parametros.append("request", "obtenerDatosUsuario")
+				parametros.append("request", "obtenerUsuario")
 				axios.post('/api/funciones.php', parametros)
 					.then(res => {
 						console.log(res);
@@ -52,7 +58,7 @@
 						if (res.data.status === 'OK') {
 							// Redirigimos al usuario al Dashboard
 							this.$router.push({
-								name: 'Dashboard'
+								name: 'Tareas'
 							});
 						}
 					})
@@ -63,7 +69,7 @@
 			loguearUsuario() {
 				// Almacenamos los datos del usuario
 				let parametros = new FormData();
-				parametros.append("request", "validarUsuario");
+				parametros.append("request", "loginUsuario");
 				parametros.append("correo", this.correo);
 				parametros.append("contra", this.contra);
 
@@ -76,12 +82,16 @@
 							console.log(res);
 							// Redirigimos al usuario al Dashboard
 							this.$router.push({
-								name: 'Dashboard'
+								name: 'Tareas'
 							});
 						} else {
 							if (res.data.status === 'FAIL') {
-								console.log("Los datos son INCORRECTOS");
 								console.log(res);
+								// Verificamos si res.data contiene la propiedad 'errores' para después mandarla al UI
+								if (Object.prototype.hasOwnProperty.call(res.data, 'errores')) {
+									// Obtenemos los errores
+									this.errores = res.data.errores;
+								}
 							}
 						}
 					})
