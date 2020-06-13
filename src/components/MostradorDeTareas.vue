@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div id="componente">
         <h3>Lista de tareas</h3>
         <div v-if="this.tareas.length > 0">
             <table class="table w-100 tabla sombra-tabla my-3">
@@ -130,6 +130,12 @@ export default {
         actualizarTareaInput(tarea) {
             // Actualizamos el nuevo valor del prop de «Modal.vue»
             this.tareaModal = tarea;
+
+            // Eliminamos los espacios al inicio y fin de la tarea
+            this.tareaModal = this.tareaModal.trim();
+
+            // Eliminamos los espacios extra que pueden haber entre palabras
+            this.tareaModal = this.tareaModal.replace(/\s+/g, " ");
         },
         actualizarTareaNombre(datos) {
             // Hacemos un for para encontrar el ID que sea igual al ID de la tarea
@@ -170,6 +176,10 @@ export default {
 
 <style scoped>
     @import url("https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,regular,italic,500,500italic,700,700italic,900,900italic");
+
+    #componente {
+        max-width: 1100px;
+    }
 
     h3 {
         font-family: 'Roboto', 'Arial', sans-serif;

@@ -10,7 +10,9 @@
         <div v-if="(this.mensaje !== null) && (this.estado === 'noEncontrada')" class="alert alert-danger">
             {{this.mensaje}}
         </div>
-        
+        <div v-if="(this.mensaje !== null) && (this.estado === 'NO_URL_GET')" class="alert alert-danger">
+            {{this.mensaje}}
+        </div>
     </div>
 </template>
 
@@ -57,7 +59,11 @@ export default {
                     console.log(err);
                 })
         } else {
-            this.error = "Se produjo un error.";
+            // Indicamos que no se obtuvo el parámetro GET «código»
+            this.estado = "NO_URL_GET";
+
+            // Mandamos un error al usuario
+            this.mensaje = "Se produjo un error.";
         }
     }
 }

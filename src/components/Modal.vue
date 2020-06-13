@@ -12,15 +12,21 @@
                         </button>
                     </div>
                     <div class="modal-body">
+                        <div class="alert alert-danger" v-if="Object.keys(this.errores).length !== 0">
+                            <ul class="m-0 pl-2" v-for="error in this.errores" :key="error">
+                               <li>{{error}}</li>
+                            </ul>
+                        </div>
                         <form>
                             <div class="form-group">
-                                <textarea name="" id="" cols="4" rows="" class="form-control" v-model="obtenerTareaInput"></textarea>
+                                <textarea name="" id="" cols="4" rows="" class="form-control" v-model.trim="obtenerTareaInput"></textarea>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                        <button type="button" class="btn btn-success" data-dismiss="modal" v-on:click="actualizarTarea()">Actualizar tarea</button>
+                        <button v-if="Object.keys(this.errores).length === 0" type="button" class="btn btn-success" data-dismiss="modal" v-on:click="actualizarTarea()">Actualizar tarea</button>
+                        <button v-if="Object.keys(this.errores).length !== 0" type="button" class="btn btn-success" v-on:click="actualizarTarea()">Actualizar tarea</button>
                     </div>
                 </div>
             </div>
@@ -63,40 +69,58 @@
         },
         data() {
             return {
-                tareita: 'chin'
+                errores: []
             }
+        },
+        mounted() {
+            //console.log(this.obtenerTareaInput);
         },
         methods: {
             actualizarTarea() {
-                // Creamos unos parametros
-                let parametros = new FormData();
-                parametros.append("request", "actualizarTarea");
-                parametros.append("id_tarea", this.id);
-                parametros.append("tarea_nueva", this.tarea);
-                console.log(this.accion);
+                // Refrescamos el nombre de la tarea
+                this.$emit('tareaNueva', this.tarea);
+
+                // Verificamos si el usuario escribió algo en el campo de las tarea
+                if (this.tarea.length === 0) {
+                    // Limpiamos los errores
+                    this.errores = [];
+
+                    // Agregamos el error
+                    this.errores.push('Ingrese una tarea válida en el campo correspondiente.');
+                } else {
+                    // Limpiamos los errores
+                    this.errores = [];
+
+                    // Creamos unos parametros
+                    let parametros = new FormData();
+                    parametros.append("request", "actualizarTarea");
+                    parametros.append("id_tarea", this.id);
+                    parametros.append("tarea_nueva", this.tarea);
+                    console.log(this.accion);
 
 
-                // Hacemos una petición AJAX para actualizar la tarea en la base de datos
-                axios.post('/api/funciones.php', parametros)
-                    .then(res => {
-                        console.log(res);
-                        // Si la consulta fué realizada exitosamente...
-                        if (res.data.status === 'OK') {
-                            // Preparamos los datos a enviar
-                            let datos = {
-                                ID: this.id,
-                                Tarea: this.tarea
+                    // Hacemos una petición AJAX para actualizar la tarea en la base de datos
+                    axios.post('/api/funciones.php', parametros)
+                        .then(res => {
+                            console.log(res);
+                            // Si la consulta fué realizada exitosamente...
+                            if (res.data.status === 'OK') {
+                                // Preparamos los datos a enviar
+                                let datos = {
+                                    ID: this.id,
+                                    Tarea: this.tarea
+                                }
+
+                                // Emitimos una señal al componente padre «MostradorDeTareas.vue»
+                                // y mandamos los datos para que se actualice el texto de la tarea
+                                // que se editó
+                                this.$emit('tareaActualizar', datos);
                             }
-
-                            // Emitimos una señal al componente padre «MostradorDeTareas.vue»
-                            // y mandamos los datos para que se actualice el texto de la tarea
-                            // que se editó
-                            this.$emit('tareaActualizar', datos);
-                        }
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
+                        })
+                        .catch(err => {
+                            console.log(err);
+                        })
+                }
             },
             eliminarTarea() {
                 // Creamos unos parametros

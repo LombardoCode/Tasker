@@ -1,4 +1,4 @@
-# Tasker (Actualmente en desarrollo (alpha))
+# Tasker (Beta) (v.0.0.1)
 Sistema multiusuarios para leer, crear, editar y eliminar notas y recordatorios.
 </br></br>
 ## ~ Tecnologías usadas para la realización de este proyecto ~

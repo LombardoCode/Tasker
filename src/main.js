@@ -10,12 +10,16 @@ import Tareas from './components/Tareas.vue'
 import ConfigCuenta from './components/ConfigCuenta.vue'
 import Verificar from './components/Verificar.vue'
 import '@fortawesome/fontawesome-free/css/all.css'
+import 'izitoast/dist/css/iziToast.css'
+import 'izitoast/dist/js/iziToast.js'
+
 
 Vue.config.productionTip = false
 Vue.use(VueRouter)
 
 const Router = new VueRouter({
 	mode: 'history',
+	base: '/',
 	routes: [
 		{
 			path: '/',

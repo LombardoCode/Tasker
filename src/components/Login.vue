@@ -50,7 +50,8 @@
 			obtenerDatosUsuario() {
 				// Creamos unos parametros
 				let parametros = new FormData();
-				parametros.append("request", "obtenerUsuario")
+				parametros.append("request", "obtenerDatosUsuario");
+				//axios.get('https://api.github.com/users').then(res => {console.log(res)}).catch(err => {console.log(err)})
 				axios.post('/api/funciones.php', parametros)
 					.then(res => {
 						console.log(res);

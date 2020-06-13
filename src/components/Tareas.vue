@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div id="panel_derecho" class="flex-fill px-4 pt-4">
+        <div id="panel_derecho" class="px-4 pt-4">
             <CreadorDeTareas @datosTarea="tareaRecibida"/>
             <MostradorDeTareas :tareaMandada="this.datosTarea"/>
         </div>
@@ -32,5 +32,7 @@ export default {
 </script>
 
 <style>
-
+    #panel_derecho {
+        width: 100%;
+    }
 </style>

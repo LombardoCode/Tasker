@@ -25,13 +25,26 @@
                 // Creamos una variable de errores
                 $errores = new ArrayObject();
 
-                // Obtenemos correo y contraseña ingresada
+                // Verificamos si tenemos el usuario y contraseña
                 if (isset($_POST['correo']) && (isset($_POST['contra']))) {
+                    // Obtenemos el correo que ingresó el usuario
                     $correo = $_POST['correo'];
-                    $contra = $_POST['contra'];
 
                     // Eliminamos los espacios del correo
                     $correo = trim($correo);
+
+                    // Convertimos el correo en minúsculas
+                    $correo = strtolower($correo);
+
+                    // Sanitizamos el correo (eliminamos caracteres especiales)
+                    $correo = filter_var($correo, FILTER_SANITIZE_EMAIL);
+
+                    // Obtenemos la contraseña que ingresó el usuario
+                    $contra = $_POST['contra'];
+
+                    // Encriptamos la contraseña (esto porque en la base de datos está encriptada)
+                    // Necesitamos la contraseña encriptada para compararla con la de la base de datos
+                    $contra = md5($contra);
 
                     // Sanitizamos el correo (eliminamos caracteres especiales)
                     $correo = filter_var($correo, FILTER_SANITIZE_EMAIL);
@@ -178,28 +191,7 @@
 
             // Si el usuario quiere cerrar sesión...
             if ($request == 'cerrarSesion') {
-                // Abrimos una sesión
-                session_start();
-
-                // Si tenemos una sesión abierta...
-                if (session_status() != PHP_SESSION_NONE) {
-                    // Si tenemos datos en sesión...
-                    if (isset($_SESSION)) {
-                        // Limpiamos los datos de sesión
-                        $_SESSION = [];
-
-                        // Destruimos la sesión
-                        session_destroy();
-
-                        // Creamos una respuesta para nuestra petición AJAX
-                        $respuesta = array(
-                            'status' => 'OK'
-                        );
-
-                        // Mandamos la respuesta a nuestro AJAX
-                        echo json_encode($respuesta);
-                    }
-                }
+                cerrarSesion();
             }
 
             // Si el usuario quiere registrarse
@@ -228,11 +220,14 @@
 
                 // Si su correo está dentro de $_POST...
                 if (isset($_POST['correo'])) {
-                    // Obtenemos su nombre
+                    // Obtenemos el correo
                     $correo = $_POST['correo'];
 
                     // Eliminamos los espacios del correo
                     $correo = trim($correo);
+
+                    // Convertimos el correo en minúsculas
+                    $correo = strtolower($correo);
 
                     // Sanitizamos el correo (eliminamos caracteres especiales)
                     $correo = filter_var($correo, FILTER_SANITIZE_EMAIL);
@@ -240,17 +235,20 @@
 
                 // Si su contraseña está dentro de $_POST...
                 if (isset($_POST['contra'])) {
-                    // Obtenemos su nombre
+                    // Obtenemos la contraseña
                     $contra = $_POST['contra'];
+
+                    // Encriptamos la contraseña
+                    $contra = md5($contra);
                 }
 
                 // Si la repetición de su contraseña está dentro de $_POST...
                 if (isset($_POST['contra_repetida'])) {
-                    // Obtenemos su nombre
+                    // Obtenemos la contraseña repetida
                     $contra_repetida = $_POST['contra_repetida'];
 
-                    // Eliminamos los espacios de la contraseña repetida
-                    $contra_repetida = trim($contra_repetida);
+                    // Encriptamos la contraseña repetida
+                    $contra_repetida = md5($contra_repetida);
                 }
 
                 // Verificamos si el usuario ha ingresado algo dentro del campo de correo electrónico
@@ -375,6 +373,41 @@
                     }
                 } else {
                     echo '[PHP]: No hay tareas para mi.';
+                }
+            }
+
+            if ($request == 'obtenerFotoPerfil') {
+                // Iniciamos una sesión
+                session_start();
+
+                // Si tenemos una sesión abierta...
+                if (session_status() == PHP_SESSION_ACTIVE) {
+                    // Si tenemos el ID del usuario logueado...
+                    if (isset($_SESSION['id'])) {
+                        // Capturamos el ID del usuario
+                        $id = $_SESSION['id'];
+                    }
+                }
+
+                // Creamos una consulta
+                $instruccion = "SELECT foto_perfil FROM Usuarios WHERE ID = :id";
+                $query = $conexion -> prepare($instruccion);
+                $query -> bindParam(':id', $id);
+
+                if ($query -> execute()) {
+                    // Obtenemos el nombre del archivo
+                    $resultado = $query -> fetch();
+                    $nombre_foto = $resultado['foto_perfil'];
+
+                    // Creamos una respuesta
+                    $respuesta = array(
+                        'status' => 'OK',
+                        'foto_perfil' => $nombre_foto
+                    );
+
+                    echo json_encode($respuesta);
+                } else {
+                    echo 'No resultado';
                 }
             }
 
@@ -539,6 +572,445 @@
                 }
             }
 
+            if ($request == "actualizarCuenta") {
+                // Obtenemos el sub-request
+                if (isset($_POST['subrequest'])) {
+                    $subrequest = $_POST['subrequest'];
+
+                    // Si el usuario quiere actualizar sus datos generales...
+                    if ($subrequest == "actualizarDatosGenerales") {
+                        // Creamos una variable de errores
+                        $errores = new ArrayObject();
+
+                        // Creamos una variable para el nombre de la foto a subir a la base de datos y un indicador para saber si se subió correctamente
+                        $foto_cargada = false;
+                        $foto_nuevo_nombre = null;
+                        $foto_subida = false;
+
+                        // Iniciamos una sesión
+                        session_start();
+                
+                        // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                        if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                            // Obtenemos el ID
+                            $id = $_SESSION['id'];
+                        }
+
+                        // Verificamos si tenemos el nombre
+                        if (isset($_POST['nombre'])) {
+                            // Obtenemos el nombre
+                            $nombre = $_POST['nombre'];
+                            
+                            // Eliminamos los espacios del nombre
+                            $nombre = trim($nombre);
+
+                            // Sanitizamos el nombre (eliminamos etiquetas)
+                            $nombre = filter_var($nombre, FILTER_SANITIZE_STRING);
+
+                            // Verificamos si el usuario ha ingresado algo dentro del campo de nombre
+                            if (strlen($nombre) == 0) {
+                                $errores -> append("Por favor, ingrese su nombre en el campo correspondiente.");
+                            }
+                        }
+
+                        // Verificamos si el usuario subió un archivo dentro del input file del formulario de fotos
+                        if (isset($_FILES['foto_perfil'])) {
+                            // Obtenemos la foto y la información de la misma
+                            $foto         = $_FILES['foto_perfil'];
+                            $foto_nombre  = $foto['name'];
+                            $foto_tmp     = $foto['tmp_name'];
+                            $foto_tamanio = $foto['size'];
+                            $foto_error   = $foto['error'];
+                            $foto_tipo    = $foto['type'];
+
+                            // Obtenemos la extensión de la foto
+                            $foto_ext = explode('.', $foto_nombre);
+                            $foto_ext_veridica = strtolower(end($foto_ext));
+
+                            // Establecemos unos formatos permitidos
+                            $formatos_foto_permitidos = array('jpg', 'jpeg', 'png');
+
+                            // Verificamos si la foto subida por el usuario contiene el formato permitido
+                            if (in_array($foto_ext_veridica, $formatos_foto_permitidos)) {
+                                // Verificamos si no obtuvimos un error al subir la foto
+                                if ($foto_error == 0) {
+                                    // Si el usuario sube una foto inferior a 20,971,520 bytes (20 MB)
+                                    if ($foto_tamanio <= 20971520) {
+                                        $foto_nuevo_nombre = uniqid('', true) . '.' . $foto_ext_veridica;
+                                        $foto_destino = '../img/fotos_de_perfil/' . $foto_nuevo_nombre;
+
+                                        // Movemos la foto a nuestra carpeta de fotos
+                                        if (move_uploaded_file($_FILES['foto_perfil']['tmp_name'], $foto_destino)) {
+                                            // Indicamos que la foto se ha subido correctamente
+                                            $foto_subida = true;
+                                        } else {
+                                            $foto_subida = false;
+                                        }
+                                    } else {
+                                        // La foto es demasiado grande
+                                        $errores -> append('La foto debe de pesar menos de 20 MB.');
+                                    }
+                                } else {
+                                    // Se produjo un error al subir la foto
+                                    $errores -> append('Se produjo un error al subir la foto.');
+                                }
+                            } else {
+                                // No puedes subir archivos de este tipo
+                                $errores -> append('Solo se admiten archivos de fotos .jpg, .jpeg, .png');
+                            }
+                        }
+
+                        // Si no tenemos errores...
+                        if (($errores -> count()) == 0) {
+                            // Dependiendo si el usuario subió o no una foto de perfil será el query que ejecutaremos a la base de datos
+                            if (!$foto_subida) {
+                                $instruccion = "UPDATE Usuarios SET Nombre = :nombre WHERE ID = :id";
+                            } else {
+                                $instruccion = "UPDATE Usuarios SET Nombre = :nombre, foto_perfil = :foto_perfil WHERE ID = :id";
+                            }
+
+                            // Preparamos la consulta
+                            $query = $conexion -> prepare($instruccion);
+                            $query -> bindParam(':nombre', $nombre);
+                            $query -> bindParam(':id', $id);
+
+                            if ($foto_subida) {
+                                $query -> bindParam(':foto_perfil', $foto_nuevo_nombre);
+                            }
+                            
+                            // Ejecutamos la consulta
+                            if ($query -> execute()) {
+                                // Creamos una respuesta
+                                $respuesta = array(
+                                    'status' => 'OK',
+                                    'resultados' => array(
+                                        'nombre' => $nombre
+                                    )
+                                );
+
+                                // Mandamos la respuesta a nuestro AJAX
+                                echo json_encode($respuesta);
+                            } else {
+                                // Creamos una respuesta
+                                $respuesta = array(
+                                    'status' => 'FAIL'
+                                );
+
+                                // Mandamos la respuesta a nuestro AJAX
+                                echo json_encode($respuesta);
+                            }
+                        } else {
+                            // Creamos una respuesta
+                            $respuesta = array(
+                                'status' => 'FAIL',
+                                'errores' => $errores
+                            );
+
+                            // Mandamos la respuesta a nuestro AJAX
+                            echo json_encode($respuesta);
+                        }
+                    }
+
+                    // Si el usuario quiere actualizar su correo...
+                    if ($subrequest == 'enviarCambioCorreo') {
+                        // Creamos una variable de error
+                        $error = new ArrayObject();
+
+                        // Si tenemos un correo guardado en $_POST...
+                        if (isset($_POST['correo'])) {
+                            $correo = $_POST['correo'];
+                        }
+
+                        // Verificamos si el nuevo correo que eligió el usuario ya existe en la base de datos
+                        $instruccion = "SELECT * FROM Usuarios WHERE Correo = :correo";
+                        $query = $conexion -> prepare($instruccion);
+                        $query -> bindParam(':correo', $correo);
+
+                        
+                        if ($query -> execute()) {
+                            // Si ese correo existe en la base de datos...
+                            if ($query -> rowCount() > 0) {
+                                // Obtenemos los datos de la consulta
+                                $resultados = $query -> fetch();
+
+                                // Iniciamos una sesión
+                                session_start();
+                        
+                                // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                                if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                                    // Obtenemos el ID
+                                    $id = $_SESSION['id'];
+                                }
+
+                                // Si el ID obtenido de la consulta es el mismo del ID de la sesión actual...
+                                if ($resultados['ID'] == $id) {
+                                    // El usuario está intentando cambiar su correo por el mismo correo que tiene actualmente
+                                    $error -> append("El correo al que usted intenta cambiar ya estaba ligado a su cuenta");
+                                } else {
+                                    // El usuario está intentando está intentando cambiar de correo por el de otro usuario que si está registrado en el sitio
+                                    $error -> append("El correo que ingresó le pertenece a otro usuario. Por favor, ingrese un correo que no esté vinculado a Tasker.");
+                                }
+
+                                // Creamos una respuesta
+                                $respuesta = array(
+                                    'status' => 'FAIL',
+                                    'correoExistente' => true,
+                                    'error' => $error
+                                );
+
+                                // Maandamos la respuesta al AJAX
+                                echo json_encode($respuesta);
+                            } else {
+                                // Creamos una respuesta
+                                $respuesta = array(
+                                    'status' => 'OK',
+                                    'correoExistente' => false
+                                );
+
+                                // Mandamos la respuesta al AJAX
+                                echo json_encode($respuesta);
+                            }
+                        }
+                        
+                    }
+
+                    // Si el usuario ha colocado el código de verificación correcto se le cambiará el correo electrónico
+                    if ($subrequest == 'actualizarCorreo') {
+                        // Iniciamos una sesión
+                        session_start();
+                
+                        // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                        if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                            // Obtenemos el ID
+                            $id = $_SESSION['id'];
+                        }
+
+                        // Obtenemos el correo electrónico nuevo del usuario
+                        if (isset($_POST['correo'])) {
+                            $correo = $_POST['correo'];
+                        }
+
+                        // Obtenemos el código que ingresó el usuario
+                        if (isset($_POST['claveDeVerificacion'])) {
+                            $clave_de_verificacion = $_POST['claveDeVerificacion'];
+                            $clave_de_verificacion = md5($clave_de_verificacion);
+                        }
+
+                        // Verificamos que el código que ingresó el usuario es el que realmente está en la base de datos
+                        $instruccion = "SELECT * FROM Usuarios WHERE ID = :id AND clave_conf = :clave_de_verificacion";
+                        $query = $conexion -> prepare($instruccion);
+                        $query -> bindParam(':id', $id);
+                        $query -> bindParam(':clave_de_verificacion', $clave_de_verificacion);
+
+                        if ($query -> execute()) {
+                            if ($query -> rowCount() > 0) {
+                                $instruccion = "UPDATE Usuarios SET Correo = :correo WHERE ID = :id";
+                                $query = $conexion -> prepare($instruccion);
+                                $query -> bindParam(':correo', $correo);
+                                $query -> bindParam(':id', $id);
+
+                                if ($query -> execute()) {
+                                    $respuesta = array(
+                                        'status' => 'OK'
+                                    );
+    
+                                    echo json_encode($respuesta);
+                                } else {
+                                    $respuesta = array(
+                                        'status' => 'FAIL'
+                                    );
+    
+                                    echo json_encode($respuesta);
+                                }
+                            } else {
+                                $respuesta = array(
+                                    'status' => 'FAIL'
+                                );
+
+                                echo json_encode($respuesta);
+                            }
+                        }
+                    }
+
+                    // Si el usuario quiere actualizar su contraseña...
+                    if ($subrequest == 'actualizarContra') {
+                        // Creamos una variable de errores
+                        $errores = new ArrayObject();
+
+                        // Iniciamos una sesión
+                        session_start();
+                
+                        // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                        if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                            // Obtenemos el ID
+                            $id = $_SESSION['id'];
+                        }
+
+                        // Obtenemos la contraseña actual, la nueva contraseña y la nueva contraseña repetida
+                        if (isset($_POST['contra_actual'])) {
+                            $contra_actual = $_POST['contra_actual'];
+
+                            if (strlen($contra_actual) == 0) {
+                                $errores -> append("Por favor, ingrese su contraseña en el campo correspondiente.");
+                            } else {
+                                // Encriptamos la contraseña
+                                $contra_actual = md5($contra_actual);
+                            }
+                        }
+
+                        if (isset($_POST['contra_nueva'])) {
+                            $contra_nueva = $_POST['contra_nueva'];
+                        }
+
+                        if (isset($_POST['contra_nueva_repetida'])) {
+                            $contra_nueva_repetida = $_POST['contra_nueva_repetida'];
+                        }
+
+                        if (strlen($contra_nueva) == 0 && strlen($contra_nueva_repetida) == 0) {
+                            $errores -> append("Por favor, rellene los campos para la nueva contraseña.");
+                        }
+
+                        if ((strlen($contra_nueva) != 0 && strlen($contra_nueva_repetida) == 0) || (strlen($contra_nueva) == 0 && strlen($contra_nueva_repetida) != 0)) {
+                            $errores -> append("Debe rellenar ambos campos para la nueva contraseña.");
+                        }
+
+                        if ((strlen($contra_nueva) > 0) && strlen($contra_nueva_repetida) > 0) {
+                            if ($contra_nueva != $contra_nueva_repetida) {
+                                $errores -> append("Las nuevas contraseñas no coinciden.");
+                            }
+                        }
+
+
+                        // Hacemos una consulta a la base de datos para recuperar la contraseña actual del usuario y compararla para ver si es realmente la verdadera contraseña del usuario
+                        $instruccion = "SELECT Contra FROM Usuarios WHERE ID = :id";
+                        $query = $conexion -> prepare($instruccion);
+                        $query -> bindParam(':id', $id);
+
+                        if ($query -> execute()) {
+                            $resultados = $query -> fetch();
+
+                            // Verificamos si la contraseña que dió el usuario coincide con la de la base de datos
+                            if (strlen($contra_actual) != 0) {
+                                if ($resultados['Contra'] != $contra_actual) {
+                                    $errores -> append("La contraseña es incorrecta.");
+                                }
+                            }
+
+                            // Si no hay errores...
+                            if (($errores -> count()) == 0) {
+                                // Encriptamos la contraseña
+                                $contra_nueva = md5($contra_nueva);
+
+                                $instruccion = "UPDATE Usuarios SET Contra = :contra WHERE ID = :id";
+                                $query = $conexion -> prepare($instruccion);
+                                $query -> bindParam(':contra', $contra_nueva);
+                                $query -> bindParam(':id', $id);
+
+                                if ($query -> execute()) {
+                                    $respuesta = array(
+                                        'status' => 'OK'
+                                    );
+
+                                    echo json_encode($respuesta);
+                                }
+                            } else {
+                                $respuesta = array(
+                                    'status' => 'FAIL',
+                                    'errores' => $errores
+                                );
+
+                                echo json_encode($respuesta);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Si el usuario quiere eliminar su cuenta
+            if ($request == "verificarContra") {
+                // Creamos una variable de errores
+                $errores = new ArrayObject();
+
+                // Iniciamos una sesión
+                session_start();
+                
+                // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                    // Obtenemos el ID
+                    $id = $_SESSION['id'];
+                }
+
+                // Obtenemos la contraseña del usuario
+                if ($_POST['contra']) {
+                    $contra = $_POST['contra'];
+
+                    // Encriptamos la contraseña ya que la base de datos contiene las contraseñas encriptadas
+                    $contra = md5($contra);
+                }
+
+                // Hacemos una consulta para verificar si la contraseña ingresada por el usuario es la que realmente está en la base de datos
+                $instruccion = "SELECT * FROM Usuarios WHERE ID = :id AND Contra = :contra";
+                $query = $conexion -> prepare($instruccion);
+                $query -> bindParam(':id', $id);
+                $query -> bindParam(':contra', $contra);
+
+                // Ejecutamos la consulta
+                if ($query -> execute()) {
+                    // Si se han obtenido los resultados...
+                    if ($query -> rowCount() > 0) {
+                        // Creamos una respuesta
+                        $respuesta = array(
+                            'status' => 'OK'
+                        );
+
+                        // Enviamos la respuesta a nuestro AJAX
+                        echo json_encode($respuesta);
+                    } else {
+                        // Significa que la contraseña no es la misma y que el usuario se ha equivocado
+                        $errores -> append("La credencial es incorrecta. Por favor, verifíquela.");
+
+                        // Creamos una respuesta
+                        $respuesta = array(
+                            'status' => 'FAIL',
+                            'errores' => $errores
+                        );
+
+                        // Respondemos a la petición AJAX
+                        echo json_encode($respuesta);
+                    }
+                }
+            }
+
+            if ($request == 'eliminarCuenta') {
+                // Iniciamos una sesión
+                session_start();
+                
+                // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                    // Obtenemos el ID
+                    $id = $_SESSION['id'];
+                }
+                
+                // Procedemos a eliminar las tareas del usuario
+                $instruccion = "DELETE FROM Tareas WHERE ID_Usuario = :id";
+                $query = $conexion -> prepare($instruccion);
+                $query -> bindParam(':id', $id);
+
+                // Ejecutamos la consulta (eliminamos las tareas del usuario)
+                if ($query -> execute()) {
+                    /* Ahora , eliminamos el usuario */
+                    $instruccion = "DELETE FROM Usuarios WHERE ID = :id";
+                    $query = $conexion -> prepare($instruccion);
+                    $query -> bindParam('id', $id);
+
+                    // Ejecutamos la consulta (eliminamos el usuario)
+                    if ($query -> execute()) {
+                        // Cerramos la sesión del usuario
+                        cerrarSesion();
+                    }
+                }
+            }
+
             // Envio de correos
             if ($request == "enviarCorreo") {
                 // Obtenemos el tipo de correo
@@ -551,13 +1023,19 @@
                         if (isset($_POST['correo'])) {
                             $correo = $_POST['correo'];
 
-                            // Obtenemos la clave de validacion del usuario
-                            if (isset($_POST['clave_de_validacion'])) {
-                                $clave_de_validacion = $_POST['clave_de_validacion'];
+                            // Le enviamos el correo al usuario
+                            enviarCorreo($tipo_correo, $correo);
+                        }
+                    }
+                    
+                    // Si el usuario quiere cambiar el correo...
+                    if ($tipo_correo == "cambiarCorreo") {
+                        // Obtenemos el correo del usuario
+                        if (isset($_POST['correo'])) {
+                            $correo = $_POST['correo'];
 
-                                // Le enviamos el correo al usuario
-                                enviarCorreo($tipo_correo, $correo, $clave_de_validacion);
-                            }
+                            // Le enviamos el correo al usuario
+                            enviarCorreo($tipo_correo, $correo);
                         }
                     }
                 }
@@ -566,7 +1044,7 @@
     }
 
     function loginUsuario($correo, $contra) {
-        // Reutilizamos la conexión
+        // Llamamos a la conexión
         global $conexion;
 
         // Creamos una variable de errores
@@ -600,7 +1078,7 @@
                     'id' => $resultados['ID'],
                     'correo' => $resultados['Correo'],
                     'contra' => $resultados['Contra'],
-                    'status' => 'OK',
+                    'status' => 'OK'
                 );
 
                 // Iniciamos una sesión
@@ -635,6 +1113,32 @@
      *  FUNCIONES
      */
 
+     // Cerramos la sesión del usuario
+     function cerrarSesion() {
+         // Abrimos una sesión
+         session_start();
+
+         // Si tenemos una sesión abierta...
+         if (session_status() != PHP_SESSION_NONE) {
+             // Si tenemos datos en sesión...
+             if (isset($_SESSION)) {
+                 // Limpiamos los datos de sesión
+                 $_SESSION = [];
+
+                 // Destruimos la sesión
+                 session_destroy();
+
+                 // Creamos una respuesta para nuestra petición AJAX
+                 $respuesta = array(
+                     'status' => 'OK'
+                 );
+
+                 // Mandamos la respuesta a nuestro AJAX
+                 echo json_encode($respuesta);
+             }
+         }
+     }
+
     // Obtener la conexión a la base de datos
     function validarConexion() {
         try {
@@ -648,7 +1152,10 @@
     }
 
      // Envio de correos
-    function enviarCorreo($tipo_correo, $correo, $clave_de_validacion) {
+    function enviarCorreo($tipo_correo, $correo) {
+        // Llamamos a la conexión
+        global $conexion;
+
         // Definimos el host
         $nombre_del_server = "";
         if ($_SERVER['SERVER_NAME'] == 'localhost') {
@@ -675,10 +1182,53 @@
             /* Dependiendo del tipo de correo será lo que recibirá el usuario en su bandeja */
             // Verificación de la cuenta del usuario
             if ($tipo_correo == "verificarCuenta") {
+                // Obtenemos la clave de validacion del usuario
+                if (isset($_POST['clave_de_validacion'])) {
+                    $clave_de_validacion = $_POST['clave_de_validacion'];
+                }
+
                 $mail->Subject = 'Verifica tu nueva cuenta de Tasker';
                 $mail->Body    = '
                     <h1>¡Bienvenido a Tasker!</h1>
                     <p>Por favor, verifique su cuenta haciendo click <a href="http://' . $nombre_del_server . '/verificar?codigo=' . $clave_de_validacion . '">aqui</a></p>
+                ';
+            }
+
+            if ($tipo_correo == 'cambiarCorreo') {
+                // Generamos el código de verificación del 100,000 al 999,999
+                $codigo_de_verificacion = rand(100000, 999999);
+
+                // Iniciamos una sesión
+                session_start();
+                
+                // Si tenemos una sesión abierta y tenemos un ID dentro de $_SESSION...
+                if ((session_status() == PHP_SESSION_ACTIVE) && (isset($_SESSION['id']))) {
+                    // Obtenemos el ID
+                    $id = $_SESSION['id'];
+                }
+
+                $clave_encriptada = md5($codigo_de_verificacion);
+
+                // Guardamos en la base de datos el código de verificación
+                $instruccion = "UPDATE Usuarios SET clave_conf = :clave WHERE ID = :id";
+                $query = $conexion -> prepare($instruccion);
+                $query -> bindParam(':clave', $clave_encriptada);
+                $query -> bindParam(':id', $id);
+
+                if ($query -> execute()) {
+                    $respuesta = array(
+                        'status' => 'OK'
+                    );
+
+                    echo json_encode($respuesta);
+                }
+
+                $mail->Subject = 'Cambio de correo de Tasker';
+                $mail->Body    = '
+                    <h1>Solicitud de cambio de correo!</h1>
+                    <p>El código de verificación es:</p>
+                    <span style="background-color: #c7c7c7; border-radius: 6px; padding: 8px 10px; font-size: 1.2rem">' . $codigo_de_verificacion . '</span>
+                    <p>Atentamente, el equipo de Tasker.</p>
                 ';
             }
     

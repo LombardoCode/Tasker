@@ -23,5 +23,7 @@ yarn-error.log*
 # Archivos de configuración
 api/PHPMailer/configPHPMailer.php
 
+# Archivos de fotos de perfil de usuarios
+/img/fotos_de_perfil
 
 
